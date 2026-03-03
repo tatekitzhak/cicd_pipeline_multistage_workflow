@@ -1,4 +1,4 @@
-name: Application-deployment-of-Docker-image-from-Docker-Hub # 3
+name: manualy-deploy-docker-img-from-docker-hub # 3
 
 on:
   workflow_run:
