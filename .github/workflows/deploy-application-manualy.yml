@@ -206,5 +206,23 @@ jobs:
       needs: [deploy]
       steps:
         - run: echo "All CI jobs completed successfully."
+
+        - name: Checkout Code
+          uses: actions/checkout@v4
+
+        - name: Configure AWS Credentials
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+            aws-region: ${{ secrets.AWS_REGION }}
+            
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_version: "1.7.0" # Or your preferred version
+
+        - name: Terraform Init
+          run: terraform init
+
         - name: Terraform Destroy 
           run: terraform destroy -auto-approve
