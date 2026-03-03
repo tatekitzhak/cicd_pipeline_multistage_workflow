@@ -106,9 +106,14 @@ jobs:
       - name: Terraform Destroy on Failure
         run: terraform destroy -auto-approve
 
+      - name: Save Instance ID to file
+        run: echo "${{ steps.ec2-id.outputs.instance_id }}" > instance_id.txt
+
       - name: Upload Build Data
         uses: actions/upload-artifact@v4
         with:
           name: 2-artifact-build-data
-          path: .
+          path: |
+            .
+            instance_id.txt
           if-no-files-found: error

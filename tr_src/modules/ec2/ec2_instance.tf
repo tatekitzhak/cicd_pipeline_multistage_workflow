@@ -17,7 +17,7 @@ resource "aws_instance" "ubuntu_ec2_instance_terraform" {
   subnet_id                   = aws_subnet.tf_subnet_public.id
   vpc_security_group_ids      = [var.sg_id]
   associate_public_ip_address = true
-  # iam_instance_profile        = aws_iam_instance_profile.ec2_ssm.name
+  iam_instance_profile        = aws_iam_instance_profile.ec2_ssm.name
   key_name                    = aws_key_pair.deployer.key_name
 
   tags = {

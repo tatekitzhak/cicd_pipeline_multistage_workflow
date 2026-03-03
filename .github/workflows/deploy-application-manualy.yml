@@ -29,7 +29,15 @@ jobs:
             name: 2-artifact-build-assets 
             run-id: ${{ github.event.workflow_run.id }}
             github-token: ${{ secrets.GITHUB_TOKEN }}
-            path: ./artifact_build_dir_2 # Or your build directory
+            path: . # Or your build directory
+
+        - name: Read Instance ID
+          id: get-id
+          run: |
+              # Read the ID from the file and set it as a step output
+              ID=$(cat instance_id.txt)
+              echo "EC2_INSTANCE_ID=$ID" >> $GITHUB_ENV
+              echo "id=$ID" >> $GITHUB_OUTPUT
 
         - name: Check files artifact downloaded from 2-artifact-build-assets
           if: github.event_name == 'workflow_run'
@@ -43,6 +51,7 @@ jobs:
         #   with:
         #     username: ${{ secrets.DOCKERHUB_USERNAME }}
         #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+
         - name: Deploy to AWS
           run: |
             echo "Pulling image from Docker Hub..."
@@ -55,6 +64,30 @@ jobs:
           with:
             role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
             aws-region: ${{ env.AWS_REGION }}
+        
+        - name: Deploy Nginx via SSM (Clean Version)
+          run: |
+              COMMAND=$(cat <<EOF
+              sudo apt update -y
+              sudo apt install -y nginx
+              sudo tee /var/www/html/index.html <<HTML
+              <!DOCTYPE html>
+              <html>
+              <body>
+                <h1>Hello From Ubuntu EC2 Instance!!!</h1>
+                <p>Setup by Terraform and GitHub Actions.</p>
+              </body>
+              </html>
+              HTML
+              sudo systemctl restart nginx
+              EOF
+              )
+    
+              aws ssm send-command \
+                --instance-ids "${{ env.EC2_INSTANCE_ID }}" \
+                --document-name "AWS-RunShellScript" \
+                --parameters "commands=[$COMMAND]" \
+                --region ${{ secrets.AWS_REGION }}
             
         # - name: Verify Docker Installation and Run Docker Check via SSM
         #   id: docker_check
@@ -204,6 +237,11 @@ jobs:
       name: Terraform Destroy
       runs-on: ubuntu-latest
       needs: [deploy]
+
+      permissions:
+        id-token: write # Required for requesting the JWT
+        contents: read  # Required for actions/checkout
+
       steps:
         - run: echo "All CI jobs completed successfully."
 
@@ -215,7 +253,7 @@ jobs:
           with:
             role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
             aws-region: ${{ secrets.AWS_REGION }}
-            
+
         - name: Setup Terraform
           uses: hashicorp/setup-terraform@v3
           with:
