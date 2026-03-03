@@ -1,0 +1,114 @@
+name: deploying-aws-Infrastructure-with-terraform # 2 Setup AWS resources using Terraform and GitHub Actions (JWT from GitHub's OpenID Connect)
+
+####
+# Triggers: after CI completes, or manually via "Run workflow"
+###
+on:
+  workflow_run:
+    workflows: ["ci-pipeline"]
+    types: [completed]
+  workflow_dispatch: {}   # Allow manual run from Actions tab
+
+
+####
+# Getting start trigger the schedule for this job definition. 
+###
+jobs:
+ 
+  terraform_deploy_aws_resources:
+    # Run when CI succeeded (workflow_run) or when triggered manually (workflow_dispatch)
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run && github.event.workflow_run.conclusion == 'success')
+    name: Set up AWS through Terraform
+    runs-on: ubuntu-latest
+    outputs:
+      instance_id: ${{ steps.ec2-id.outputs.instance_id }}
+    permissions:
+      id-token: write # This permission setting enables the workflow to request and use a JSON Web Token (JWT) from GitHub's OpenID Connect (OIDC) provider. 
+      contents: read # This permission grants the GITHUB_TOKEN read-only access to the repository's contents (for actions/checkout@v2). 
+    
+    defaults:
+      run:
+        working-directory: tr_src
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download artifact (from triggering CI run)
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: 1-artifact-build-data
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ./artifact_build_dir_1 # Or your build directory
+
+      - name: Check files artifact downloaded
+        if: github.event_name == 'workflow_run'
+        run: | 
+            echo "Final 1-artifact-build-data Status:"
+            pwd
+            ls -R
+
+      # Establish an AWS Account
+      - name: Configure AWS Credentials (OIDC for Terraform)
+        uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          # role-session-name: GitHub-OIDC-TERRAFORM
+      
+      ##
+      # Setup AWS resources using Terraform 
+      ##
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.1.7"
+          terraform_wrapper: false
+      #
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+      #
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color
+      #
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+      #
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false
+
+      - name: Export EC2 instance ID for deploy job
+        id: ec2-id
+        run: echo "instance_id=$(terraform output -raw ec2_instance_id)" >> $GITHUB_OUTPUT
+
+      - run:  |
+          pwd
+          ls  -ltra
+      - run: echo "AWS EC2_INSTANCE_ID :${{ toJson(steps.ec2-id) }}"
+      #
+      - name: List files in the repository (tree)
+        run: tree .
+      
+      - name: Sleep for 2 minute # Sleep for 2 minute (120 seconds)
+        run: sleep 120
+
+      - name: Terraform Destroy on Failure
+        run: terraform destroy -auto-approve
+
+      - name: Upload Build Data
+        uses: actions/upload-artifact@v4
+        with:
+          name: 2-artifact-build-data
+          path: .
+          if-no-files-found: error
