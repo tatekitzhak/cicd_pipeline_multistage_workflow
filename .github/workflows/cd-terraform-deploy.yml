@@ -100,11 +100,11 @@ jobs:
       - name: List files in the repository (tree)
         run: tree .
       
-      - name: Sleep for 2 minute # Sleep for 2 minute (120 seconds)
-        run: sleep 60
+      # - name: Sleep for 2 minute # Sleep for 2 minute (120 seconds)
+      #   run: sleep 60
 
-      - name: Terraform Destroy on Failure
-        run: terraform destroy -auto-approve
+      # - name: Terraform Destroy on Failure
+      #   run: terraform destroy -auto-approve
 
       - name: Save Instance ID to file
         run: echo "${{ steps.ec2-id.outputs.instance_id }}" > instance_id.txt
