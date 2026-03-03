@@ -35,16 +35,18 @@ jobs:
         
         - name: Setup Terraform
           uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_wrapper: false 
     
         - name: Terraform Init
           run: terraform init # Connects to S3
     
         - name: Fetch EC2_INSTANCE_ID from State
+          id: get-id
           run: |
             ID=$(terraform output -raw ec2_instance_id)
             echo "EC2_INSTANCE_ID=$ID" >> $GITHUB_ENV
           
-            echo "EC2_INSTANCE_ID=$ID" >> $GITHUB_ENV
             echo "${{env.EC2_INSTANCE_ID}}"
 
         - name: Check files artifact downloaded from 2-artifact-build-assets
