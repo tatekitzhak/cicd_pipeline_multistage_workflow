@@ -42,7 +42,6 @@ module "vpc" {
 #   value       = module.ec2.ec2_instance_id
 # }
 
-
 data "aws_caller_identity" "current" {}
 
 output "account_id" {
@@ -56,7 +55,6 @@ output "caller_arn" {
 output "caller_user_id" {
   value = data.aws_caller_identity.current.user_id
 }
-
 
 resource "null_resource" "create_file_localy" {
   provisioner "local-exec" {
