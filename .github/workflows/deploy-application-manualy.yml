@@ -40,8 +40,13 @@ jobs:
     
         - name: Terraform Init
           run: terraform init 
+        
+        - name: Debug State
+          run: |
+            terraform show
+            terraform output
     
-        - name: Fetch EC2_INSTANCE_ID from State
+        - name: Fetch EC2_INSTANCE_ID from State;;
           id: get-id
           run: |
             ID=$(terraform output -raw ec2_instance_id)
