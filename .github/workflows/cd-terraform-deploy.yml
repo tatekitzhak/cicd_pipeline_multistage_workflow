@@ -1,17 +1,10 @@
 name: deploying-aws-Infrastructure-with-terraform # 2 Setup AWS resources using Terraform and GitHub Actions (JWT from GitHub's OpenID Connect)
 
-####
-# Triggers: after CI completes, or manually via "Run workflow"
-###
 on:
   workflow_run:
     workflows: ["ci-pipeline"]
     types: [completed]
 
-
-####
-# Getting start trigger the schedule for this job definition. 
-###
 jobs:
  
   terraform_deploy_aws_resources:
