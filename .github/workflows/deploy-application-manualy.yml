@@ -30,14 +30,6 @@ jobs:
             run-id: ${{ github.event.workflow_run.id }}
             github-token: ${{ secrets.GITHUB_TOKEN }}
             path: . # Or your build directory
-
-        - name: Read Instance ID
-          id: get-id
-          run: |
-              # Read the ID from the file and set it as a step output
-              ID=$(cat instance_id.txt)
-              echo "EC2_INSTANCE_ID=$ID" >> $GITHUB_ENV
-              echo "id=$ID" >> $GITHUB_OUTPUT
         
         - name: Get Instance ID via AWS CLI
           run: |
