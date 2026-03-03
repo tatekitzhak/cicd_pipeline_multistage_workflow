@@ -38,6 +38,16 @@ jobs:
               ID=$(cat instance_id.txt)
               echo "EC2_INSTANCE_ID=$ID" >> $GITHUB_ENV
               echo "id=$ID" >> $GITHUB_OUTPUT
+        
+        - name: Get Instance ID via AWS CLI
+          run: |
+            ID=$(aws ec2 describe-instances \
+              --filters "Name=tag:Name,Values=my-web-server" "Name=instance-state-name,Values=running" \
+              --query "Reservations[0].Instances[0].InstanceId" \
+              --output text)
+            
+            echo "EC2_INSTANCE_ID=$ID" >> $GITHUB_ENV
+            echo "${{env.EC2_INSTANCE_ID}}"
 
         - name: Check files artifact downloaded from 2-artifact-build-assets
           if: github.event_name == 'workflow_run'
@@ -65,29 +75,32 @@ jobs:
             role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
             aws-region: ${{ env.AWS_REGION }}
         
-        - name: Deploy Nginx via SSM (Clean Version)
-          run: |
-              COMMAND=$(cat <<EOF
-              sudo apt update -y
-              sudo apt install -y nginx
-              sudo tee /var/www/html/index.html <<HTML
-              <!DOCTYPE html>
-              <html>
-              <body>
-                <h1>Hello From Ubuntu EC2 Instance!!!</h1>
-                <p>Setup by Terraform and GitHub Actions.</p>
-              </body>
-              </html>
-              HTML
-              sudo systemctl restart nginx
-              EOF
-              )
+        # - name: Deploy Nginx via SSM (Clean Version)
+        #   run: |
+        #       COMMAND=$(cat <<EOF
+        #       sudo apt update -y
+        #       sudo apt install -y nginx
+        #       sudo tee /var/www/html/index.html <<HTML
+        #       <!DOCTYPE html>
+        #       <html>
+        #       <body>
+        #         <h1>Hello From Ubuntu EC2 Instance!!!</h1>
+        #         <p>Setup by Terraform and GitHub Actions.</p>
+        #       </body>
+        #       </html>
+        #       HTML
+        #       sudo systemctl restart nginx
+        #       EOF
+        #       )
     
-              aws ssm send-command \
-                --instance-ids "${{ env.EC2_INSTANCE_ID }}" \
-                --document-name "AWS-RunShellScript" \
-                --parameters "commands=[$COMMAND]" \
-                --region ${{ secrets.AWS_REGION }}
+        #       aws ssm send-command \
+        #         --instance-ids "${{ env.EC2_INSTANCE_ID }}" \
+        #         --document-name "AWS-RunShellScript" \
+        #         --parameters "commands=[$COMMAND]" \
+        #         --region ${{ secrets.AWS_REGION }}
+
+
+
             
         # - name: Verify Docker Installation and Run Docker Check via SSM
         #   id: docker_check
