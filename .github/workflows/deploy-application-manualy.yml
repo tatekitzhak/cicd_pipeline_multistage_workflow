@@ -30,14 +30,20 @@ jobs:
             run-id: ${{ github.event.workflow_run.id }}
             github-token: ${{ secrets.GITHUB_TOKEN }}
             path: . # Or your build directory
+
         
-        - name: Get Instance ID via AWS CLI
+        
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v3
+    
+        - name: Terraform Init
+          run: terraform init # Connects to S3
+    
+        - name: Fetch EC2_INSTANCE_ID from State
           run: |
-            ID=$(aws ec2 describe-instances \
-              --filters "Name=tag:Name,Values=my-web-server" "Name=instance-state-name,Values=running" \
-              --query "Reservations[0].Instances[0].InstanceId" \
-              --output text)
-            
+            ID=$(terraform output -raw ec2_instance_id)
+            echo "EC2_INSTANCE_ID=$ID" >> $GITHUB_ENV
+          
             echo "EC2_INSTANCE_ID=$ID" >> $GITHUB_ENV
             echo "${{env.EC2_INSTANCE_ID}}"
 
