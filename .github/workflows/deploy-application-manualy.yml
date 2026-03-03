@@ -39,7 +39,7 @@ jobs:
             terraform_wrapper: false 
     
         - name: Terraform Init
-          run: terraform init # Connects to S3
+          run: terraform init 
     
         - name: Fetch EC2_INSTANCE_ID from State
           id: get-id
