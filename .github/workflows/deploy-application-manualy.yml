@@ -30,8 +30,6 @@ jobs:
             run-id: ${{ github.event.workflow_run.id }}
             github-token: ${{ secrets.GITHUB_TOKEN }}
             path: . # Or your build directory
-
-        
         
         - name: Setup Terraform
           uses: hashicorp/setup-terraform@v3
@@ -46,7 +44,7 @@ jobs:
             terraform show
             terraform output
     
-        - name: Fetch EC2_INSTANCE_ID from State;;
+        - name: Fetch EC2_INSTANCE_ID from State;;;
           id: get-id
           run: |
             ID=$(terraform output -raw ec2_instance_id)
