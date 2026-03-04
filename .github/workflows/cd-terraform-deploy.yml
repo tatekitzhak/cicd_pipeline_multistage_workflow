@@ -85,13 +85,33 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false
 
-      - name: Export EC2 instance ID for deploy job
+      # - name: Export EC2 instance ID for deploy job
+      #   id: ec2-id
+      #   # run: echo "instance_id=$(terraform output -raw ec2_instance_id)" >> $GITHUB_OUTPUT
+      #   run: INSTANCE_ID=$(terraform output -raw ec2_instance_id)
+      #     echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+      #     mkdir -p dist-artifact-build
+      #     echo "$INSTANCE_ID" > dist-artifact-build/instance_id.txt
+
+      - name: Save Instance ID to file
         id: ec2-id
-        # run: echo "instance_id=$(terraform output -raw ec2_instance_id)" >> $GITHUB_OUTPUT
-        run: INSTANCE_ID=$(terraform output -raw ec2_instance_id)
+        run: |
+          # 1. Capture the output
+          INSTANCE_ID=$(terraform output -raw ec2_instance_id)
+          echo "Captured ID: $INSTANCE_ID"
+          
+          # 2. Set the GitHub Output
           echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
-          mkdir -p dist-artifact-build
-          echo "$INSTANCE_ID" > dist-artifact-build/instance_id.txt
+          
+          # 3. Create the directory explicitly using the full workspace path
+          # This ensures we aren't trapped by the 'tr_src' default
+          mkdir -p "${GITHUB_WORKSPACE}/tr_src/dist-artifact-build"
+          
+          # 4. Write the file using the absolute path
+          echo "$INSTANCE_ID" > "${GITHUB_WORKSPACE}/tr_src/dist-artifact-build/instance_id.txt"
+          
+          # 5. Verify it exists immediately
+          ls -l "${GITHUB_WORKSPACE}/tr_src/dist-artifact-build/instance_id.txt"
 
       - run:  |
           pwd
