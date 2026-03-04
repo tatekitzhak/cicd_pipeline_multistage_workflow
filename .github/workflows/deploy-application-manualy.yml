@@ -26,7 +26,8 @@ jobs:
           uses: actions/download-artifact@v4
           with:
             name: 2-artifact-build-assets 
-            run-id: ${{ github.event.workflow_run.id  }}
+            # run-id: ${{ github.event.workflow_run.id  }}
+            run-id: ${{ github.event.inputs.run_id || github.event.workflow_run.id }}
             github-token: ${{ secrets.GITHUB_TOKEN }}
             path: . # Or your build directory
         
