@@ -18,9 +18,9 @@ jobs:
       id-token: write # This permission setting enables the workflow to request and use a JSON Web Token (JWT) from GitHub's OpenID Connect (OIDC) provider. 
       contents: read # This permission grants the GITHUB_TOKEN read-only access to the repository's contents (for actions/checkout@v2). 
     
-    defaults:
-      run:
-        working-directory: tr_src
+    # defaults:
+    #   run:
+    #     working-directory: tr_src
 
     steps:
       - name: Checkout Repository
@@ -101,11 +101,13 @@ jobs:
       - name: Save Instance ID to file
         run: echo "${{ steps.ec2-id.outputs.instance_id }}" > instance_id.txt
       
-      # - name: Create dist directory
-      #   run: mkdir -p dist-artifact-build
+      - name: Create dist directory
+        # This creates tr_src/dist-artifact-build/
+        run: mkdir -p dist-artifact-build
       
       - name: Move files to dist-artifact-build
-        run: cp instance_id.txt tr_src/dist-artifact-build/
+        # This copies tr_src/instance_id.txt to tr_src/dist-artifact-build/
+        run: cp instance_id.txt dist-artifact-build/
 
       - name: Upload Build Data
         uses: actions/upload-artifact@v4
