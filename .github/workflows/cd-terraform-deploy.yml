@@ -1,4 +1,4 @@
-name: deploying-aws-Infrastructure-with-terraform # 2 Setup AWS resources using Terraform and GitHub Actions (JWT from GitHub's OpenID Connect)
+name: deploying-aws-Infrastructure-with-terraform 
 
 on:
   workflow_run:
@@ -8,7 +8,7 @@ on:
 jobs:
  
   terraform_deploy_aws_resources:
-    # Run when CI succeeded (workflow_run) or when triggered manually (workflow_dispatch)
+   
     if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run && github.event.workflow_run.conclusion == 'success')
     name: Set up AWS through Terraform
     runs-on: ubuntu-latest
@@ -101,15 +101,15 @@ jobs:
       - name: Save Instance ID to file
         run: echo "${{ steps.ec2-id.outputs.instance_id }}" > instance_id.txt
       
-      - name: Create dist directory
-        run: mkdir -p dist-artifact-build
+      # - name: Create dist directory
+      #   run: mkdir -p dist-artifact-build
       
       - name: Move files to dist-artifact-build
-        run: cp instance_id.txt dist-artifact-build/
+        run: cp instance_id.txt tr_src/dist-artifact-build/
 
       - name: Upload Build Data
         uses: actions/upload-artifact@v4
         with:
           name: artifact-build-assets-2
-          path: dist-artifact-build/
+          path: tr_src/dist-artifact-build/
           if-no-files-found: error

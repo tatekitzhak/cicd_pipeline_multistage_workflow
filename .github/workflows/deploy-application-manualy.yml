@@ -45,8 +45,12 @@ jobs:
             
             github-token: ${{ github.token }}
             repository: tatekitzhak/cicd_pipeline_multistage_workflow
-            path: dist-artifact-build/ # Or your build directory
+            path: ./dist-artifact-build # Or your build directory
         
+        - name: Read Instance ID
+          run: |
+              cat ./dist-artifact-build/instance_id.txt
+
         - name: Terraform Init
           run: terraform init 
         
