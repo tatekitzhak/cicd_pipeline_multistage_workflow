@@ -17,6 +17,7 @@ jobs:
     permissions:
       id-token: write # This permission setting enables the workflow to request and use a JSON Web Token (JWT) from GitHub's OpenID Connect (OIDC) provider. 
       contents: read # This permission grants the GITHUB_TOKEN read-only access to the repository's contents (for actions/checkout@v2). 
+      actions: read      # Required to download artifacts from other runs
     
     # defaults:
     #   run:
