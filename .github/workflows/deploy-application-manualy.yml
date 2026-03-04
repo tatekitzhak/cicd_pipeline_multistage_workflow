@@ -39,13 +39,13 @@ jobs:
         - name: Download artifact (from triggering CI run)
           uses: actions/download-artifact@v4
           with:
-            name: artifact-build-assets-22
+            name: artifact-build-assets-2
             
             # run-id: ${{ github.event.inputs.run_id  }}
             
             github-token: ${{ github.token }}
             repository: tatekitzhak/cicd_pipeline_multistage_workflow
-            path: artifact-build-assets-22 # Or your build directory
+            path: dist-artifact-build/ # Or your build directory
         
         - name: Terraform Init
           run: terraform init 
@@ -63,12 +63,12 @@ jobs:
           
         #     echo "${{env.EC2_INSTANCE_ID}}"
 
-        - name: Check files artifact downloaded from 2-artifact-build-assets
+        - name: Check files artifact downloaded from artifact-build-assets-2
          
           run: | 
-            echo "Final 2-artifact-build-data Status:"
+            echo "Final dist-artifact-build/ Status:"
             pwd
-            ls -R artifact-build-assets-22
+            ls -R dist-artifact-build/
 
         # - name: Login to Docker Hub
         #   uses: docker/login-action@v3

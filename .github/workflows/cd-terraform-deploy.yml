@@ -100,10 +100,16 @@ jobs:
 
       - name: Save Instance ID to file
         run: echo "${{ steps.ec2-id.outputs.instance_id }}" > instance_id.txt
+      
+      - name: Create dist directory
+        run: mkdir -p dist-artifact-build
+      
+      - name: Move files to dist-artifact-build
+        run: cp instance_id.txt dist-artifact-build/
 
       - name: Upload Build Data
         uses: actions/upload-artifact@v4
         with:
           name: artifact-build-assets-2
-          path: artifact-build-assets-22
+          path: dist-artifact-build/
           if-no-files-found: error
