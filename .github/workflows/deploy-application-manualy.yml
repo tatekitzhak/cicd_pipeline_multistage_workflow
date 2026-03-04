@@ -28,14 +28,7 @@ jobs:
       steps:
         - name: Checkout Code
           uses: actions/checkout@v4
-
-        - name: Setup Terraform
-          uses: hashicorp/setup-terraform@v3
-          with:
-            terraform_wrapper: false 
-
-        - run: echo "github.event.inputs.run_id; ${{toJson(github.event)}}"
-
+        
         - name: Download artifact (from triggering CI run)
           uses: actions/download-artifact@v4
           with:
@@ -43,9 +36,37 @@ jobs:
             
             # run-id: ${{ github.event.inputs.run_id  }}
             
-            github-token: ${{ github.token }}
+            github-token: ${{ github.token || secrets.GITHUB_TOKEN}}
             repository: tatekitzhak/cicd_pipeline_multistage_workflow
             path: ./dist-artifact-build # Or your build directory
+        
+        - name: Read and Verify Instance ID
+          run: |
+              echo "Checking downloaded files:"
+              ls -R ./dist-artifact-build
+              FILE_PATH="./dist-artifact-build/instance_id.txt"
+              if [ -f "$FILE_PATH" ]; then
+                ID=$(cat "$FILE_PATH")
+                echo "Successfully retrieved EC2 ID: $ID"
+                echo "EC2_INSTANCE_ID=$ID" >> $GITHUB_ENV
+              else
+                echo "Error: instance_id.txt not found!"
+                exit 1
+              fi
+        
+        - name: Configure AWS Credentials (OIDC)
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+            aws-region: ${{ env.AWS_REGION }}
+
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_wrapper: false 
+
+        # - run: echo "github.event.inputs.run_id; ${{toJson(github.event)}}"
+
         
         - name: Read Instance ID
           run: |
@@ -74,11 +95,6 @@ jobs:
             pwd
             ls -R dist-artifact-build/
 
-        # - name: Login to Docker Hub
-        #   uses: docker/login-action@v3
-        #   with:
-        #     username: ${{ secrets.DOCKERHUB_USERNAME }}
-        #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
         - name: Deploy to AWS
           run: |
@@ -87,11 +103,7 @@ jobs:
             echo "Deploying to AWS instance via SSH or ECS..."
             # Add your specific AWS deployment command here (e.g., aws ecs update-service)
 
-        - name: Configure AWS Credentials (OIDC)
-          uses: aws-actions/configure-aws-credentials@v4
-          with:
-            role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-            aws-region: ${{ env.AWS_REGION }}
+       
         
         # - name: Deploy Nginx via SSM (Clean Version)
         #   run: |

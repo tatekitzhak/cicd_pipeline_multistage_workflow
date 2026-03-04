@@ -4,6 +4,7 @@ on:
   workflow_run:
     workflows: ["ci-pipeline"]
     types: [completed]
+  workflow_dispatch: {}
 
 jobs:
  
@@ -12,20 +13,32 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run && github.event.workflow_run.conclusion == 'success')
     name: Set up AWS through Terraform
     runs-on: ubuntu-latest
-    outputs:
-      instance_id: ${{ steps.ec2-id.outputs.instance_id }}
-    permissions:
-      id-token: write # This permission setting enables the workflow to request and use a JSON Web Token (JWT) from GitHub's OpenID Connect (OIDC) provider. 
-      contents: read # This permission grants the GITHUB_TOKEN read-only access to the repository's contents (for actions/checkout@v2). 
-      actions: read      # Required to download artifacts from other runs
-    
+
     defaults:
       run:
         working-directory: tr_src
 
+    outputs:
+      instance_id: ${{ steps.ec2-id.outputs.instance_id }}
+
+    permissions:
+      id-token: write # This permission setting enables the workflow to request and use a JSON Web Token (JWT) from GitHub's OpenID Connect (OIDC) provider. 
+      contents: read # This permission grants the GITHUB_TOKEN read-only access to the repository's contents (for actions/checkout@v2). 
+      actions: read      # Required to download artifacts from other runs
+
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v4
+      
+      # Establish an AWS Account
+      - name: Configure AWS Credentials (OIDC for Terraform)
+        uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          # role-session-name: GitHub-OIDC-TERRAFORM
 
       - name: Download artifact (from triggering CI run)
         if: github.event_name == 'workflow_run'
@@ -42,15 +55,6 @@ jobs:
             echo "Final 1-artifact-build-data Status:"
             pwd
             ls -R
-
-      # Establish an AWS Account
-      - name: Configure AWS Credentials (OIDC for Terraform)
-        uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
-          # role-session-name: GitHub-OIDC-TERRAFORM
       
       ##
       # Setup AWS resources using Terraform 
@@ -83,7 +87,11 @@ jobs:
 
       - name: Export EC2 instance ID for deploy job
         id: ec2-id
-        run: echo "instance_id=$(terraform output -raw ec2_instance_id)" >> $GITHUB_OUTPUT
+        # run: echo "instance_id=$(terraform output -raw ec2_instance_id)" >> $GITHUB_OUTPUT
+        run: INSTANCE_ID=$(terraform output -raw ec2_instance_id)
+          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+          mkdir -p dist-artifact-build
+          echo "$INSTANCE_ID" > dist-artifact-build/instance_id.txt
 
       - run:  |
           pwd
@@ -99,16 +107,16 @@ jobs:
       # - name: Terraform Destroy on Failure
       #   run: terraform destroy -auto-approve
 
-      - name: Save Instance ID to file
-        run: echo "${{ steps.ec2-id.outputs.instance_id }}" > instance_id.txt
+      # - name: Save Instance ID to file
+      #   run: echo "${{ steps.ec2-id.outputs.instance_id }}" > instance_id.txt
       
       - name: Create dist directory
         # This creates tr_src/dist-artifact-build/
         run: mkdir -p dist-artifact-build
       
-      - name: Move files to dist-artifact-build
-        # This copies tr_src/instance_id.txt to tr_src/dist-artifact-build/
-        run: cp instance_id.txt dist-artifact-build/
+      # - name: Move files to dist-artifact-build
+      #   # This copies tr_src/instance_id.txt to tr_src/dist-artifact-build/
+      #   run: cp instance_id.txt dist-artifact-build/
 
       - name: Upload Build Data
         uses: actions/upload-artifact@v4
