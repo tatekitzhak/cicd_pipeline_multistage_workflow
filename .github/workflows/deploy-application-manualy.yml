@@ -25,11 +25,11 @@ jobs:
         - name: Download artifact (from triggering CI run)
           uses: actions/download-artifact@v4
           with:
-            name: 2-artifact-build-assets 
+            name: artifact-build-assets-2
             # run-id: ${{ github.event.workflow_run.id  }}
-            run-id: ${{ github.event.inputs.run_id || github.event.workflow_run.id }}
+            # run-id: ${{ github.event.inputs.run_id || github.event.workflow_run.id }}
             github-token: ${{ secrets.GITHUB_TOKEN }}
-            path: . # Or your build directory
+            path: ./ # Or your build directory
         
         - name: Setup Terraform
           uses: hashicorp/setup-terraform@v3
