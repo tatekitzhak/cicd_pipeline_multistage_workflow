@@ -23,7 +23,6 @@ jobs:
           uses: actions/checkout@v4
 
         - name: Download artifact (from triggering CI run)
-          if: github.event_name == 'workflow_run'
           uses: actions/download-artifact@v4
           with:
             name: 2-artifact-build-assets 
