@@ -72,23 +72,6 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false
       
-      # - name: Upload Build Data
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: build_data
-      #     path: .
-      #     if-no-files-found: error
-      
-  proccess_ec2_instance_id:
-    name: Proccess EC2 Instance ID
-    runs-on: ubuntu-latest
-    needs:
-      -  terraform_deploy_aws_resources
-  
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
       - name: Export EC2 instance ID for deploy job
         id: ec2-id
         run: echo "instance_id=$(terraform output -raw ec2_instance_id)" >> $GITHUB_OUTPUT
@@ -111,3 +94,16 @@ jobs:
           ls  -ltra
       - name: List files in the repository (tree)
         run: tree .
+      
+      # - name: Sleep for 2 minute # Sleep for 2 minute (120 seconds)
+      #   run: sleep 60
+
+      # - name: Terraform Destroy on Failure
+      #   run: terraform destroy -auto-approve
+      
+      # - name: Upload Build Data
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: build_data
+      #     path: .
+      #     if-no-files-found: error
