@@ -43,13 +43,6 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: . # Or your build directory
-
-      - name: Check files artifact_build_data_1 downloaded
-        if: github.event_name == 'workflow_run'
-        run: | 
-            echo "Final artifact_build_data_1 Status:"
-            pwd
-            ls -R
       
       ##
       # Setup AWS resources using Terraform 
