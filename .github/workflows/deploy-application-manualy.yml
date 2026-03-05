@@ -29,11 +29,11 @@ jobs:
           env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           run: |
-            RUN_ID=$(gh run list --workflow "Workflow A" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+            RUN_ID=$(gh run list --workflow "deploying-aws-Infrastructure-with-terraform" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
   
             # Check if RUN_ID is empty or "null"
             if [ -z "$RUN_ID" ] || [ "$RUN_ID" == "null" ]; then
-              echo "::error::No successful runs of 'Workflow A' found. Please run Workflow A first."
+              echo "::error::No successful runs of 'deploying-aws-Infrastructure-with-terraform' found. Please run deploying-aws-Infrastructure-with-terraform first."
               exit 1
             fi
   
