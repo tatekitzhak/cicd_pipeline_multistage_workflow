@@ -8,7 +8,7 @@ on:
   workflow_dispatch:   # Allow manual run from Actions tab
 
 jobs:
-    extract_ec2_instance_id_for_json_file:
+    deploy-docker:
       name: Extract EC2 instance ID for JSON file
       runs-on: ubuntu-latest
       # if: github.event_name == 'workflow_dispatch'
@@ -102,32 +102,6 @@ jobs:
               let data = fs.readFileSync('./tr_src/ec2_instance.json', 'utf8');
               return JSON.parse(data);
         
-        
-        # - name: Configure AWS Credentials (OIDC)
-        #   uses: aws-actions/configure-aws-credentials@v4
-        #   with:
-        #     role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-        #     aws-region: ${{ env.AWS_REGION }}
-
-        # - name: Setup Terraform
-        #   uses: hashicorp/setup-terraform@v3
-        #   with:
-        #     terraform_wrapper: false 
-
-        # - name: Terraform Init
-        #   run: terraform init 
-        
-        # - name: Debug State
-        #   run: |
-        #     terraform show
-        #     terraform output
-
-        - name: Deploy to AWS
-          run: |
-            echo "Pulling image from Docker Hub..."
-            # docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-app:latest
-            echo "Deploying to AWS instance via SSH or ECS..."
-            # Add your specific AWS deployment command here (e.g., aws ecs update-service)
 
       outputs:
         EC2_INSTANCE_ID: ${{ fromJSON(steps.return_parsed_json.outputs.result).ec2_instance_id }} 
@@ -303,8 +277,9 @@ jobs:
         #       sleep 10
         #     done
         #     echo "Deploy completed."
-    deploy_docker_to_aws_ec2_instance:
+    log_ec2_instance_values:
       name: Deploy Docker to EC2
+      
       permissions:
         id-token: write   
         contents: read    
@@ -312,7 +287,7 @@ jobs:
         pull-requests: write
   
       needs:
-        -  extract_ec2_instance_id_for_json_file
+        -  deploy-docker
       runs-on: ubuntu-latest
       steps:
         - name: Configure AWS Credentials
@@ -323,8 +298,8 @@ jobs:
 
         - name: Log Context Values
           run: |
-            echo "EC2_INSTANCE_ID; ${{ needs.extract_ec2_instance_id_for_json_file.outputs.EC2_INSTANCE_ID }}"
-            echo "AWS_REGION; ${{ needs.extract_ec2_instance_id_for_json_file.outputs.AWS_REGION }}"
+            echo "EC2_INSTANCE_ID; ${{ needs.deploy-docker.outputs.EC2_INSTANCE_ID }}"
+            echo "AWS_REGION; ${{ secrets.AWS_REGION }}"
         
         - name: Deploy Nginx via SSM (Clean Version)
           run: |
@@ -345,15 +320,15 @@ jobs:
               )
     
               aws ssm send-command \
-                --instance-ids "${{ needs.extract_ec2_instance_id_for_json_file.outputs.EC2_INSTANCE_ID }}" \
+                --instance-ids "${{ needs.deploy-docker.outputs.EC2_INSTANCE_ID }}" \
                 --document-name "AWS-RunShellScript" \
                 --parameters "commands=[$COMMAND]" \
-                --region ${{ needs.extract_ec2_instance_id_for_json_file.outputs.AWS_REGION }}
+                --region ${{ needs.deploy-docker.outputs.AWS_REGION }}
 
     # terraform_destroy:
     #   name: Terraform Destroy
     #   runs-on: ubuntu-latest
-    #   needs: [ extract_ec2_instance_id_for_json_file, log_ec2_instance_values ]
+    #   needs: [ deploy-docker, log_ec2_instance_values ]
 
     #   permissions:
     #     id-token: write # Required for requesting the JWT
