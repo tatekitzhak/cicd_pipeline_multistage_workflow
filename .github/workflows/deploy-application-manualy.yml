@@ -103,24 +103,24 @@ jobs:
               return JSON.parse(data);
         
         
-        - name: Configure AWS Credentials (OIDC)
-          uses: aws-actions/configure-aws-credentials@v4
-          with:
-            role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-            aws-region: ${{ env.AWS_REGION }}
+        # - name: Configure AWS Credentials (OIDC)
+        #   uses: aws-actions/configure-aws-credentials@v4
+        #   with:
+        #     role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        #     aws-region: ${{ env.AWS_REGION }}
 
-        - name: Setup Terraform
-          uses: hashicorp/setup-terraform@v3
-          with:
-            terraform_wrapper: false 
+        # - name: Setup Terraform
+        #   uses: hashicorp/setup-terraform@v3
+        #   with:
+        #     terraform_wrapper: false 
 
-        - name: Terraform Init
-          run: terraform init 
+        # - name: Terraform Init
+        #   run: terraform init 
         
-        - name: Debug State
-          run: |
-            terraform show
-            terraform output
+        # - name: Debug State
+        #   run: |
+        #     terraform show
+        #     terraform output
 
         - name: Deploy to AWS
           run: |
@@ -348,48 +348,48 @@ jobs:
                 --parameters "commands=[$COMMAND]" \
                 --region ${{ needs.deploy-docker.outputs.AWS_REGION }}
 
-    terraform_destroy:
-      name: Terraform Destroy
-      runs-on: ubuntu-latest
-      needs: [ deploy-docker, log_ec2_instance_values ]
+    # terraform_destroy:
+    #   name: Terraform Destroy
+    #   runs-on: ubuntu-latest
+    #   needs: [ deploy-docker, log_ec2_instance_values ]
 
-      permissions:
-        id-token: write # Required for requesting the JWT
-        contents: read  # Required for actions/checkout
+    #   permissions:
+    #     id-token: write # Required for requesting the JWT
+    #     contents: read  # Required for actions/checkout
 
-      steps:
-        - run: echo "All CI jobs completed successfully."
+    #   steps:
+    #     - run: echo "All CI jobs completed successfully."
 
-        - name: Checkout Code
-          uses: actions/checkout@v4
+    #     - name: Checkout Code
+    #       uses: actions/checkout@v4
         
-        - name: Download artifact
-          uses: actions/download-artifact@v4
-          with:
-            # name: ec2_instance.json 
-            # run-id: ${{ github.event.workflow_run.id }}
-            github-token: ${{ secrets.GITHUB_TOKEN }}
-            path: . # Or your build directory
+    #     - name: Download artifact
+    #       uses: actions/download-artifact@v4
+    #       with:
+    #         # name: ec2_instance.json 
+    #         # run-id: ${{ github.event.workflow_run.id }}
+    #         github-token: ${{ secrets.GITHUB_TOKEN }}
+    #         path: . # Or your build directory
       
-        - name: Check files artifact downloaded from ec2_instance.json
-          run: | 
-              echo "Final 2-artifact-build-data Status:"
-              pwd
-              ls -R
+    #     - name: Check files artifact downloaded from ec2_instance.json
+    #       run: | 
+    #           echo "Final 2-artifact-build-data Status:"
+    #           pwd
+    #           ls -R
 
-        - name: Configure AWS Credentials
-          uses: aws-actions/configure-aws-credentials@v4
-          with:
-            role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-            aws-region: ${{ secrets.AWS_REGION }}
+    #     - name: Configure AWS Credentials
+    #       uses: aws-actions/configure-aws-credentials@v4
+    #       with:
+    #         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+    #         aws-region: ${{ secrets.AWS_REGION }}
 
-        - name: Setup Terraform
-          uses: hashicorp/setup-terraform@v3
-          with:
-            terraform_version: "1.7.0" # Or your preferred version
+    #     - name: Setup Terraform
+    #       uses: hashicorp/setup-terraform@v3
+    #       with:
+    #         terraform_version: "1.7.0" # Or your preferred version
 
-        - name: Terraform Init
-          run: terraform init
+    #     - name: Terraform Init
+    #       run: terraform init
 
-        - name: Terraform Destroy 
-          run: terraform destroy -auto-approve
+    #     - name: Terraform Destroy 
+    #       run: terraform destroy -auto-approve
