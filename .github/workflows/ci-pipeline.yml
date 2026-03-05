@@ -1,8 +1,5 @@
 name: ci-pipeline
 
-###
-# Triggers: run on push and pull_request to main
-###
 on:
   push:
     branches:
@@ -62,7 +59,7 @@ jobs:
       - name: Upload Build Data
         uses: actions/upload-artifact@v4
         with:
-          name: 1-artifact-build-data
+          name: artifact_build_data_1
           path: .
           if-no-files-found: error
 

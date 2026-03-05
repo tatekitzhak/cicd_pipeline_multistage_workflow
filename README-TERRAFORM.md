@@ -34,3 +34,5 @@ bash:
 `terraform apply -var-file="production.tfvars" `
 # or for terraform plan
 `terraform plan -var-file="production.tfvars" `
+
+<!-- accurate, battle-tested, and verified configuration -->

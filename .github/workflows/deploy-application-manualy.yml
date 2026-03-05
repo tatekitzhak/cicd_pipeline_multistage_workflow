@@ -4,12 +4,8 @@ on:
   workflow_run:
     workflows: ["deploying-aws-Infrastructure-with-terraform"]
     types: [completed]
-  # workflow_dispatch:   # Allow manual run from Actions tab
-  #   inputs:
-  #     run_id:
-  #       description: 'The ID of the workflow run that created the artifact'
-  #       required: false
-  #       type: string
+
+  workflow_dispatch:   # Allow manual run from Actions tab
 
 jobs:
     deploy-docker:
@@ -26,33 +22,89 @@ jobs:
         # EC2_INSTANCE_ID: ${{ needs.terraform_deploy_aws_resources.outputs.instance_id }}
 
       steps:
-        - name: Checkout Code
+        - name: Checkout Repository Code
           uses: actions/checkout@v4
-        
-        - name: Download artifact (from triggering CI run)
-          uses: actions/download-artifact@v4
-          with:
-            name: artifact-build-assets-2
-            
-            # run-id: ${{ github.event.inputs.run_id  }}
-            
-            github-token: ${{ github.token || secrets.GITHUB_TOKEN}}
-            repository: tatekitzhak/cicd_pipeline_multistage_workflow
-            path: ./dist-artifact-build # Or your build directory
-        
-        - name: Read and Verify Instance ID
+
+        - name: Get Latest Workflow Run ID
+          env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           run: |
-              echo "Checking downloaded files:"
-              ls -R ./dist-artifact-build
-              FILE_PATH="./dist-artifact-build/instance_id.txt"
-              if [ -f "$FILE_PATH" ]; then
-                ID=$(cat "$FILE_PATH")
-                echo "Successfully retrieved EC2 ID: $ID"
-                echo "EC2_INSTANCE_ID=$ID" >> $GITHUB_ENV
-              else
-                echo "Error: instance_id.txt not found!"
-                exit 1
-              fi
+            RUN_ID=$(gh run list --workflow "Workflow A" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+  
+            # Check if RUN_ID is empty or "null"
+            if [ -z "$RUN_ID" ] || [ "$RUN_ID" == "null" ]; then
+              echo "::error::No successful runs of 'Workflow A' found. Please run Workflow A first."
+              exit 1
+            fi
+  
+            echo "LATEST_RUN_ID=$RUN_ID" >> $GITHUB_ENV
+            echo "Found Run ID; $RUN_ID"
+        
+          
+        # - name: Download artifact (from triggering CI run)
+        #   uses: actions/download-artifact@v4
+        #   with:
+        #     name: artifact-build-assets-2
+            
+        #     # run-id: ${{ github.event.inputs.run_id  }}
+            
+        #     github-token: ${{ github.token || secrets.GITHUB_TOKEN}}
+        #     repository: tatekitzhak/cicd_pipeline_multistage_workflow
+        #     path: ./dist-artifact-build # Or your build directory
+
+
+        - name: Download artifact
+          uses: actions/github-script@v8
+          with:
+            script: |
+              console.log('process.env.LATEST_RUN_ID:', process.env.LATEST_RUN_ID)
+              const run_id = Number(process.env.LATEST_RUN_ID);
+
+              let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: run_id,
+              });
+
+              console.log('allArtifacts: ',allArtifacts)
+
+
+              let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
+                return artifact.name == "ec2_instance.json"
+              })[0];
+
+              console.log('matchArtifact: ',matchArtifact)
+
+              let downloadArtifact = await github.rest.actions.downloadArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: matchArtifact.id,
+                archive_format: 'zip',
+              });
+
+              console.log('downloadArtifact: ',downloadArtifact)
+        
+              let fs = require('fs');
+              fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/ec2_instance.zip`, Buffer.from(downloadArtifact.data));
+
+        - name: Unzip artifact
+          run: |
+            pwd
+            ls 
+            unzip ec2_instance.zip
+
+        - name: Return parsed JSON
+          uses: actions/github-script@v8
+          id: return_parsed_json
+          with:
+            script: |
+              let fs = require('fs');
+              let data = fs.readFileSync('./ec2_instance.json');
+              return JSON.parse(data);
+        
+  
+
+
         
         - name: Configure AWS Credentials (OIDC)
           uses: aws-actions/configure-aws-credentials@v4
@@ -65,13 +117,6 @@ jobs:
           with:
             terraform_wrapper: false 
 
-        # - run: echo "github.event.inputs.run_id; ${{toJson(github.event)}}"
-
-        
-        - name: Read Instance ID
-          run: |
-              cat ./dist-artifact-build/instance_id.txt
-
         - name: Terraform Init
           run: terraform init 
         
@@ -79,22 +124,6 @@ jobs:
           run: |
             terraform show
             terraform output
-    
-        # - name: Fetch EC2_INSTANCE_ID from State;;;
-        #   id: get-id
-        #   run: |
-        #     ID=$(terraform output -raw ec2_instance_id)
-        #     echo "EC2_INSTANCE_ID=$ID" >> $GITHUB_ENV
-          
-        #     echo "${{env.EC2_INSTANCE_ID}}"
-
-        - name: Check files artifact downloaded from artifact-build-assets-2
-         
-          run: | 
-            echo "Final dist-artifact-build/ Status:"
-            pwd
-            ls -R dist-artifact-build/
-
 
         - name: Deploy to AWS
           run: |
@@ -103,8 +132,9 @@ jobs:
             echo "Deploying to AWS instance via SSH or ECS..."
             # Add your specific AWS deployment command here (e.g., aws ecs update-service)
 
-       
-        
+      outputs:
+        EC2_INSTANCE_ID: ${{ fromJSON(steps.return_parsed_json.outputs.result).ec2_instance_id }} 
+        AWS_REGION: ${{ fromJSON(steps.return_parsed_json.outputs.result).aws_region }}
         # - name: Deploy Nginx via SSM (Clean Version)
         #   run: |
         #       COMMAND=$(cat <<EOF
@@ -276,6 +306,20 @@ jobs:
         #       sleep 10
         #     done
         #     echo "Deploy completed."
+    log_ec2_instance_values:
+      permissions:
+        contents: write
+        issues: write
+        pull-requests: write
+  
+      needs:
+        -  deploy-docker
+      runs-on: ubuntu-latest
+      steps:
+        - name: Log Context Values
+          run: |
+            echo "${{ needs. deploy-docker.outputs.EC2_INSTANCE_ID }}"
+            echo "${{ needs. deploy-docker.outputs.AWS_REGION }}"
     terraform_destroy:
       name: Terraform Destroy
       runs-on: ubuntu-latest
@@ -291,14 +335,13 @@ jobs:
         - name: Checkout Code
           uses: actions/checkout@v4
         
-        - name: Download artifact
-          if: github.event_name == 'workflow_run'
-          uses: actions/download-artifact@v4
-          with:
-            name: 2-artifact-build-assets 
-            run-id: ${{ github.event.workflow_run.id }}
-            github-token: ${{ secrets.GITHUB_TOKEN }}
-            path: . # Or your build directory
+        # - name: Download artifact
+        #   uses: actions/download-artifact@v4
+        #   with:
+        #     name: 2-artifact-build-assets 
+        #     run-id: ${{ github.event.workflow_run.id }}
+        #     github-token: ${{ secrets.GITHUB_TOKEN }}
+        #     path: . # Or your build directory
       
         - name: Check files artifact downloaded from 2-artifact-build-assets
           run: | 

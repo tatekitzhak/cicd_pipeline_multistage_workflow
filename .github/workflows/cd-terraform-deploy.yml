@@ -4,12 +4,11 @@ on:
   workflow_run:
     workflows: ["ci-pipeline"]
     types: [completed]
+
   workflow_dispatch: {}
 
 jobs:
- 
   terraform_deploy_aws_resources:
-   
     if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run && github.event.workflow_run.conclusion == 'success')
     name: Set up AWS through Terraform
     runs-on: ubuntu-latest
@@ -18,16 +17,12 @@ jobs:
       run:
         working-directory: tr_src
 
-    outputs:
-      instance_id: ${{ steps.ec2-id.outputs.instance_id }}
-
     permissions:
       id-token: write # This permission setting enables the workflow to request and use a JSON Web Token (JWT) from GitHub's OpenID Connect (OIDC) provider. 
       contents: read # This permission grants the GITHUB_TOKEN read-only access to the repository's contents (for actions/checkout@v2). 
       actions: read      # Required to download artifacts from other runs
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
       
@@ -44,22 +39,21 @@ jobs:
         if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v4
         with:
-          name: 1-artifact-build-data
+          name: artifact_build_data_1
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: ./artifact_build_dir_1 # Or your build directory
+          path: . # Or your build directory
 
-      - name: Check files artifact downloaded
+      - name: Check files artifact_build_data_1 downloaded
         if: github.event_name == 'workflow_run'
         run: | 
-            echo "Final 1-artifact-build-data Status:"
+            echo "Final artifact_build_data_1 Status:"
             pwd
             ls -R
       
       ##
       # Setup AWS resources using Terraform 
       ##
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -84,40 +78,27 @@ jobs:
       #
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false
-
-      # - name: Export EC2 instance ID for deploy job
-      #   id: ec2-id
-      #   # run: echo "instance_id=$(terraform output -raw ec2_instance_id)" >> $GITHUB_OUTPUT
-      #   run: INSTANCE_ID=$(terraform output -raw ec2_instance_id)
-      #     echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
-      #     mkdir -p dist-artifact-build
-      #     echo "$INSTANCE_ID" > dist-artifact-build/instance_id.txt
-
-      - name: Save Instance ID to file
+      
+      - name: Export EC2 instance ID for deploy job
         id: ec2-id
+        run: echo "instance_id=$(terraform output -raw ec2_instance_id)" >> $GITHUB_OUTPUT
+
+      - name: create json file
         run: |
-          # 1. Capture the output
-          INSTANCE_ID=$(terraform output -raw ec2_instance_id)
-          echo "Captured ID: $INSTANCE_ID"
-          
-          # 2. Set the GitHub Output
-          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
-          
-          # 3. Create the directory explicitly using the full workspace path
-          # This ensures we aren't trapped by the 'tr_src' default
-          mkdir -p "${GITHUB_WORKSPACE}/tr_src/dist-artifact-build"
-          
-          # 4. Write the file using the absolute path
-          echo "$INSTANCE_ID" > "${GITHUB_WORKSPACE}/tr_src/dist-artifact-build/instance_id.txt"
-          
-          # 5. Verify it exists immediately
-          ls -l "${GITHUB_WORKSPACE}/tr_src/dist-artifact-build/instance_id.txt"
+          printf '{
+            "ec2_instance_id": "${{ steps.ec2-id.outputs.instance_id }}",  
+            "aws_region": "${{secrets.AWS_REGION}}"
+            }' >> ec2_instance.json
+
+      - name: Upload AWS EC2 Instance JSON Data
+        uses: actions/upload-artifact@v4
+        with:
+          name: ec2_instance.json
+          path: .
 
       - run:  |
           pwd
           ls  -ltra
-      - run: echo "AWS EC2_INSTANCE_ID :${{ toJson(steps.ec2-id) }}"
-      #
       - name: List files in the repository (tree)
         run: tree .
       
@@ -126,21 +107,10 @@ jobs:
 
       # - name: Terraform Destroy on Failure
       #   run: terraform destroy -auto-approve
-
-      # - name: Save Instance ID to file
-      #   run: echo "${{ steps.ec2-id.outputs.instance_id }}" > instance_id.txt
       
-      - name: Create dist directory
-        # This creates tr_src/dist-artifact-build/
-        run: mkdir -p dist-artifact-build
-      
-      # - name: Move files to dist-artifact-build
-      #   # This copies tr_src/instance_id.txt to tr_src/dist-artifact-build/
-      #   run: cp instance_id.txt dist-artifact-build/
-
-      - name: Upload Build Data
-        uses: actions/upload-artifact@v4
-        with:
-          name: artifact-build-assets-2
-          path: tr_src/dist-artifact-build/
-          if-no-files-found: error
+      # - name: Upload Build Data
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: artifact_build_data_2
+      #     path: .
+      #     if-no-files-found: error
