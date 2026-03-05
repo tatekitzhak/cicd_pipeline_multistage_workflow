@@ -5,7 +5,7 @@ on:
     workflows: ["deploying-aws-Infrastructure-with-terraform"]
     types: [completed]
 
-  workflow_dispatch:   # Allow manual run from Actions tab
+  workflow_dispatch:   
 
 jobs:
     retrieve_ec2_instance_id:

@@ -5,8 +5,6 @@ on:
     workflows: ["ci-pipeline"]
     types: [completed]
 
-  workflow_dispatch: {}
-
 jobs:
   terraform_deploy_aws_resources:
     if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run && github.event.workflow_run.conclusion == 'success')
