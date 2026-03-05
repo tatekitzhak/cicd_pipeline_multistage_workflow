@@ -91,7 +91,7 @@ jobs:
           run: |
             pwd
             ls 
-            unzip ec2_instance.zip
+            unzip -o ec2_instance.zip
 
         - name: Return parsed JSON
           uses: actions/github-script@v8
@@ -99,7 +99,7 @@ jobs:
           with:
             script: |
               let fs = require('fs');
-              let data = fs.readFileSync('./ec2_instance.json');
+              let data = fs.readFileSync('./tr_src/ec2_instance.json', 'utf8');
               return JSON.parse(data);
         
   
@@ -318,8 +318,8 @@ jobs:
       steps:
         - name: Log Context Values
           run: |
-            echo "${{ needs. deploy-docker.outputs.EC2_INSTANCE_ID }}"
-            echo "${{ needs. deploy-docker.outputs.AWS_REGION }}"
+            echo "EC2_INSTANCE_ID; ${{ needs. deploy-docker.outputs.EC2_INSTANCE_ID }}"
+            echo "AWS_REGION; ${{ needs. deploy-docker.outputs.AWS_REGION }}"
     terraform_destroy:
       name: Terraform Destroy
       runs-on: ubuntu-latest
