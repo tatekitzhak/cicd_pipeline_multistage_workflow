@@ -58,7 +58,7 @@ jobs:
 
 
               let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
-                return artifact.name == "ec2_instance.json"
+                return artifact.name == "ec2_instance_info"
               })[0];
 
               console.log('matchArtifact: ',matchArtifact)
@@ -86,6 +86,7 @@ jobs:
           id: return_parsed_json
           with:
             script: |
+
               let fs = require('fs');
               let data = fs.readFileSync('./tr_src/ec2_instance.json', 'utf8');
               return JSON.parse(data);
@@ -143,48 +144,50 @@ jobs:
                 --parameters "commands=[$COMMAND]" \
                 --region ${{ secrets.AWS_REGION }}
 
-    # terraform_destroy:
-    #   name: Terraform Destroy
-    #   runs-on: ubuntu-latest
-    #   needs: [ retrieve_ec2_instance_id, deploy-docker-image-from-docker-hub ]
+    terraform_destroy:
+      name: Terraform Destroy
+      runs-on: ubuntu-latest
+      needs: [ retrieve_ec2_instance_id, deploy-docker-image-from-docker-hub ]
 
-    #   permissions:
-    #     id-token: write # Required for requesting the JWT
-    #     contents: read  # Required for actions/checkout
-
-    #   steps:
-    #     - run: echo "All CI jobs completed successfully."
-
-    #     - name: Checkout Code
-    #       uses: actions/checkout@v4
-        
-    #     - name: Download artifact
-    #       uses: actions/download-artifact@v4
-    #       with:
-    #         # name: ec2_instance.json 
-    #         # run-id: ${{ github.event.workflow_run.id }}
-    #         github-token: ${{ secrets.GITHUB_TOKEN }}
-    #         path: . # Or your build directory
+      permissions:
+        id-token: write    # Required for AWS OIDC
+        contents: read     # Required to checkout code
+        actions: read      # Required to download artifacts from other runs
       
-    #     - name: Check files artifact downloaded from ec2_instance.json
-    #       run: | 
-    #           echo "Final 2-artifact-build-data Status:"
-    #           pwd
-    #           ls -R
+      env:
+        AWS_REGION: ${{ secrets.AWS_REGION }}
 
-    #     - name: Configure AWS Credentials
-    #       uses: aws-actions/configure-aws-credentials@v4
-    #       with:
-    #         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-    #         aws-region: ${{ secrets.AWS_REGION }}
+      steps:
+        - name: Configure AWS Credentials
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+            aws-region: ${{ secrets.AWS_REGION }}
 
-    #     - name: Setup Terraform
-    #       uses: hashicorp/setup-terraform@v3
-    #       with:
-    #         terraform_version: "1.7.0" # Or your preferred version
+        - name: Checkout Code
+          uses: actions/checkout@v4
+        
+        # Download all artifacts to current directory
+        - name: Download artifact
+          uses: actions/download-artifact@v4
+          with:
+            name: ec2_instance_info 
+            # run-id: ${{ github.event.workflow_run.id }}
+            github-token: ${{ secrets.GITHUB_TOKEN }}
+            path: . # Or your build directory
+      
+        - name: Check files artifact downloaded from ec2_instance.json
+          run: | 
+              pwd
+              ls -R
 
-    #     - name: Terraform Init
-    #       run: terraform init
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_version: "1.7.0" # Or your preferred version
 
-    #     - name: Terraform Destroy 
-    #       run: terraform destroy -auto-approve
+        - name: Sleep for 2 minute # Sleep for 2 minute (120 seconds)
+          run: sleep 120
+
+        - name: Terraform Destroy 
+          run: terraform destroy -auto-approve
