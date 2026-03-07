@@ -33,14 +33,14 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
           # role-session-name: GitHub-OIDC-TERRAFORM
 
-      - name: Download artifact (from triggering CI run)
-        if: github.event_name == 'workflow_run'
-        uses: actions/download-artifact@v4
-        with:
-          name: artifact_build_data_1
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: . # Or your build directory
+      # - name: Download artifact (from triggering CI run)
+      #   if: github.event_name == 'workflow_run'
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: artifact_build_data_1
+      #     run-id: ${{ github.event.workflow_run.id }}
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     path: . # Or your build directory
       
       ##
       # Setup AWS resources using Terraform 
@@ -84,7 +84,7 @@ jobs:
       - name: Upload AWS EC2 Instance JSON Data
         uses: actions/upload-artifact@v4
         with:
-          name: ec2_instance_info
+          name: ec2_instance.json
           path: .
 
       - run:  |
