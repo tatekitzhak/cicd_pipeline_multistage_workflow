@@ -11,8 +11,12 @@ jobs:
     retrieve_ec2_instance_id:
       name: Extract EC2 instance ID for JSON file
       runs-on: ubuntu-latest
-      # if: github.event_name == 'workflow_dispatch'
-     
+      
+      outputs:
+        # Map the step output to a job-level output
+        TARGET_RUN_ID: ${{ steps.save_run_id.outputs.RUN_ID }}
+        EC2_INSTANCE_ID: ${{ fromJSON(steps.return_parsed_json.outputs.result).ec2_instance_id }}
+
       permissions:
         id-token: write    # Required for AWS OIDC
         contents: read     # Required to checkout code
@@ -26,6 +30,7 @@ jobs:
           uses: actions/checkout@v4
 
         - name: Get Latest Workflow Run ID
+          id: save_run_id  # ID is required to reference this step later
           env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           run: |
@@ -90,11 +95,6 @@ jobs:
               let fs = require('fs');
               let data = fs.readFileSync('./tr_src/ec2_instance.json', 'utf8');
               return JSON.parse(data);
-        
-
-      outputs:
-        EC2_INSTANCE_ID: ${{ fromJSON(steps.return_parsed_json.outputs.result).ec2_instance_id }} 
-        # AWS_REGION: ${{ fromJSON(steps.return_parsed_json.outputs.result).aws_region }}
 
     deploy-docker-image-from-docker-hub:
       name: Deploy Docker to EC2
@@ -131,6 +131,8 @@ jobs:
               <body>
                 <h1>Hello From Ubuntu EC2 Instance!!!</h1>
                 <p>Setup by Terraform and GitHub Actions.</p>
+                <p>AWS_REGION: ${{ secrets.AWS_REGION }} .</p>
+                <p>EC2_INSTANCE_ID: ${{ needs.retrieve_ec2_instance_id.outputs.EC2_INSTANCE_ID }}.</p>
               </body>
               </html>
               HTML
@@ -172,7 +174,7 @@ jobs:
           uses: actions/download-artifact@v4
           with:
             name: ec2_instance_info 
-            # run-id: ${{ github.event.workflow_run.id }}
+            run-id: ${{ needs.retrieve_ec2_instance_id.outputs.TARGET_RUN_ID }}
             github-token: ${{ secrets.GITHUB_TOKEN }}
             path: . # Or your build directory
       
