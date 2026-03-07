@@ -14,7 +14,7 @@ jobs:
       
       outputs:
         # Map the step output to a job-level output
-        TARGET_RUN_ID: ${{ steps.save_run_id.outputs.RUN_ID }}
+        TARGET_RUN_ID: ${{ steps.save_run_id.outputs.result.LATEST_RUN_ID }}
         EC2_INSTANCE_ID: ${{ fromJSON(steps.return_parsed_json.outputs.result).ec2_instance_id }}
 
       permissions:
