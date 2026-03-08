@@ -13,7 +13,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: tr_src
+        working-directory: tf_enviournments
 
     permissions:
       id-token: write # This permission setting enables the workflow to request and use a JSON Web Token (JWT) from GitHub's OpenID Connect (OIDC) provider. 

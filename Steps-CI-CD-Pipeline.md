@@ -1,4 +1,4 @@
-# Building Automate a CI/CD Pipeline:
+# Building an End-to-End Automate a CI/CD Pipeline
 - Automation: A "default to automation" mindset—scripting away any manual, repetitive tasks.
 - Infrastructure as Code: Managing and build cloud-based self-hosted runners.
 - CI/CD Orchestration: Authoring complex multibranch pipelines and managing build agents.
@@ -30,7 +30,7 @@ Packaging security helps organizations catch vulnerabilities early on and helps 
 
 # Continuous Integration (CI):
 _______________________________________________
-1. Build- This phase where development teams build off source code and integrate new code.
+1. Build Artifact Image and Push to Docker Hub- This phase where development teams build off source code and integrate new code.
 2. Unit test/Improved Quality- In deployment stages, software teams test using automated processes. Automated testing helps catch and address bugs and issues early in the development process.
 3. integration test
 4. Release/Deliver - This is an automated stage where the approved code is sent to the production environment.
@@ -38,11 +38,16 @@ _______________________________________________
  
 - Docker Build & Scan:
 1. GitHub Actions: uses a docker build command and  push docker hub repository
+2. Docker Images are scanned for security vulnerabilities by Trivy, before they’re deployed
 - Runs unit tests 
 - GitHub Actions: Implement a vulnerability Image Security Scan. Checks the Docker image for known vulnerabilities (e.g., using Trivy).
 - Artifact Repository: Docker image push to Docker Hub or Amazon ECR store .
 The image is tagged and pushed to Docker Hub.
 -  Uploads the verified image to Docker Hub.
+
+### Check if an AWS instances is running
+- Check AWS EC2 instance status after a terraform apply completes  build AWS infrastructure.
+ Check that the EC2 instance is running,  and verify its status and any user_data scripts success by using Terraform's check
 
 
 # Continuous Delivery (CD) - Infrastructure Layer (After CI passes)
@@ -89,3 +94,52 @@ Example Command execution:
 ## Security and Compliance:
 - SonarQube: A platform for continuous inspection of code quality and security.
 
+```bash
+
+├── tf-enviournments
+│   ├── dev
+│   │   ├── compute.tf
+│   │   ├── dev.tfvars
+│   │   ├── outputs.tf
+│   │   ├── rds.tf
+│   │   ├── s3.tf
+│   │   ├── variables.tf
+│   │   └── vpc.tf
+│   ├── prod
+│   │   ├── compute.tf
+│   │   ├── outputs.tf
+│   │   ├── prod.tfvars
+│   │   ├── rds.tf
+│   │   ├── s3.tf
+│   │   ├── variables.tf
+│   │   └── vpc.tf
+│   └── stage
+│       ├── compute.tf
+│       ├── outputs.tf
+│       ├── rds.tf
+│       ├── s3.tf
+│       ├── stage.tfvars
+│       ├── variables.tf
+│       └── vpc.tf
+└── modules
+    ├── compute
+    │   ├── main.tf
+    │   ├── outputs.tf
+    │   └── variables.tf
+    ├── rds
+    │   ├── main.tf
+    │   ├── outputs.tf
+    │   └── variables.tf
+    ├── s3
+    │   ├── main.tf
+    │   ├── outputs.tf
+    │   └── variables.tf
+    ├── security-group
+    │   ├── main.tf
+    │   ├── outputs.tf
+    │   └── variables.tf
+    └── vpc
+        ├── main.tf
+        ├── outputs.tf
+        └── variables.tf
+```
