@@ -2,7 +2,7 @@ name: manualy-deploy-docker-img-from-docker-hub # 3
 
 on:
   workflow_run:
-    workflows: ["deploying-aws-Infrastructure-with-terraform"]
+    workflows: ["Build-AWS-Infrastructure-with-Terraform"]
     types: [completed]
 
   workflow_dispatch:   
@@ -19,7 +19,7 @@ jobs:
         actions: read      # Required to download artifacts from other runs
       env:
         AWS_REGION: ${{ secrets.AWS_REGION }}
-        # EC2_INSTANCE_ID: ${{ needs.terraform_deploy_aws_resources.outputs.instance_id }}
+        # EC2_INSTANCE_ID: ${{ needs.build_aws_infrastructure_with_terraform.outputs.instance_id }}
 
       steps:
         - name: Checkout Repository Code
@@ -29,11 +29,11 @@ jobs:
           env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           run: |
-            RUN_ID=$(gh run list --workflow "deploying-aws-Infrastructure-with-terraform" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+            RUN_ID=$(gh run list --workflow "Build-AWS-Infrastructure-with-Terraform" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
   
             # Check if RUN_ID is empty or "null"
             if [ -z "$RUN_ID" ] || [ "$RUN_ID" == "null" ]; then
-              echo "::error::No successful runs of 'deploying-aws-Infrastructure-with-terraform' found. Please run deploying-aws-Infrastructure-with-terraform first."
+              echo "::error::No successful runs of 'Build-AWS-Infrastructure-with-Terraform' found. Please run Build-AWS-Infrastructure-with-Terraform first."
               exit 1
             fi
   

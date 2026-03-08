@@ -1,4 +1,4 @@
-name: deploying-aws-Infrastructure-with-terraform 
+name: Build-AWS-Infrastructure-with-Terraform 
 
 on:
   workflow_run:
@@ -6,9 +6,9 @@ on:
     types: [completed]
 
 jobs:
-  terraform_deploy_aws_resources:
+  build_aws_infrastructure_with_terraform: # build_aws_infrastructure_withTerraform
+    name: Build AWS Infrastructure with Terraform
     if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run && github.event.workflow_run.conclusion == 'success')
-    name: Set up AWS through Terraform
     runs-on: ubuntu-latest
 
     defaults:
